@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>年度收入计算逻辑</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --bg-secondary: #f7f6f3;
+            --bg-tertiary: #f1f1ef;
+            --text: #37352f;
+            --text-secondary: #6b6b6b;
+            --text-tertiary: #9b9a97;
+            --accent: #2383e2;
+            --accent-bg: #e3f2fd;
+            --border: rgba(55, 53, 47, 0.09);
+            --shadow: rgba(15, 15, 15, 0.03);
+            --code-bg: #f7f6f3;
+            --callout-blue: #0b6bcb;
+            --callout-gray: #6b6b6b;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            font-size: 15px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+        h1 {
+            font-size: 40px;
+            font-weight: 700;
+            margin: 0 0 8px;
+            letter-spacing: -0.02em;
+        }
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 18px;
+            margin-bottom: 48px;
+        }
+        h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 40px 0 16px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border);
+        }
+        h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 24px 0 12px;
+        }
+        p {
+            margin: 0 0 12px;
+            color: var(--text);
+        }
+        ul {
+            margin: 0 0 16px;
+            padding-left: 24px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .block {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            padding: 16px 20px;
+            margin: 12px 0;
+            border-left: 3px solid var(--accent);
+        }
+        .callout {
+            background: var(--accent-bg);
+            border-radius: 4px;
+            padding: 16px 20px;
+            margin: 12px 0;
+            border-left: 3px solid var(--callout-blue);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text);
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--bg-secondary); }
+        .mermaid-wrap {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            padding: 20px;
+            margin: 16px 0;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+        }
+        .mermaid-wrap pre {
+            margin: 0;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: pre;
+        }
+        code {
+            background: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+            font-family: 'SF Mono', 'Consolas', monospace;
+        }
+        .formula {
+            background: var(--bg-tertiary);
+            padding: 16px 20px;
+            border-radius: 4px;
+            font-family: 'SF Mono', monospace;
+            font-size: 14px;
+            margin: 12px 0;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 32px 0;
+        }
+        .toc {
+            background: var(--bg-secondary);
+            padding: 20px 24px;
+            border-radius: 4px;
+            margin-bottom: 40px;
+        }
+        .toc h3 { margin-top: 0; }
+        .toc a {
+            color: var(--accent);
+            text-decoration: none;
+            display: block;
+            padding: 4px 0;
+        }
+        .toc a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>年度收入计算逻辑</h1>
+        <p class="subtitle">基于 Income 脚本的计算口径与流程</p>
+
+        <div class="toc">
+            <h3>目录</h3>
+            <a href="#section1">一、数据源与分表时间线</a>
+            <a href="#section2">二、订单类型</a>
+            <a href="#section3">三、年度总收入计算逻辑</a>
+            <a href="#section4">四、收入分解公式</a>
+            <a href="#section5">五、Cohort 定义</a>
+            <a href="#section6">六、季度收入（首次购买用户）</a>
+            <a href="#section7">七、续费与过期统计</a>
+            <a href="#section8">八、季度收入（order_des 口径）</a>
+            <a href="#section9">九、跨年留存比例</a>
+            <a href="#section10">十、计算流程概览</a>
+            <a href="#section11">十一、总结</a>
+        </div>
+
+        <h2 id="section1">一、数据源与分表时间线</h2>
+        <ul>
+            <li><strong>老表</strong>：<code>vip_plan_orders_history</code>（2024、2025 年及 2026-01-22 之前数据）</li>
+            <li><strong>新表</strong>：<code>vip_plan_orders</code>（2026-01-22 之后数据）</li>
+            <li><strong>分表时间点</strong>：2026-01-22（CUTOFF）</li>
+            <li>老表金额字段：<code>price</code>；新表金额字段：<code>settle_price</code></li>
+            <li>老表状态：<code>status='Done'</code>；新表状态：<code>status='completed'</code></li>
+        </ul>
+
+        <h2 id="section2">二、订单类型（order_des / order_action）</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>类型</th>
+                    <th>老表 order_des</th>
+                    <th>新表 order_action</th>
+                    <th>说明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>首次购买-个人</td><td>personal_first_buy</td><td>purchase</td><td>个人首次付费</td></tr>
+                <tr><td>首次购买-团队</td><td>team_first_buy</td><td>purchase</td><td>团队首次付费</td></tr>
+                <tr><td>增购</td><td>team_member_increase / team_exchange</td><td>increase</td><td>团队扩容/个人转团队</td></tr>
+                <tr><td>续费</td><td>personal_renew / team_renew</td><td>renew / repurchase</td><td>续费</td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="section3">三、年度总收入计算逻辑</h2>
+        <div class="block">
+            <ul>
+                <li><strong>公式</strong>：某年总收入 = 该年所有完成订单的 price（或 settle_price）汇总</li>
+                <li><strong>条件</strong>：status='Done'（老表）或 status='completed'（新表）</li>
+                <li><strong>时间范围</strong>：created_at 在该年 1 月 1 日～12 月 31 日</li>
+                <li><strong>跨年跨表</strong>：2026 年需按 CUTOFF 拆分，老表 + 新表分别汇总后相加</li>
+            </ul>
+        </div>
+
+        <h2 id="section4">四、收入分解公式（以 2025 年为例）</h2>
+        <div class="formula">2025 年总收入 = 2025年首次用户收入 + 2024年购买用户在2025年收入 + 差额</div>
+        <ul>
+            <li><strong>2025年首次用户</strong>：user_id 和 team_id 在 2025 年之前均无付费记录</li>
+            <li><strong>2024年购买用户</strong>：user_id 或 team_id 在 2024 年有完成订单</li>
+            <li><strong>差额</strong>：2023年及更早首次、2024年无购买、2025年有购买的用户</li>
+        </ul>
+        <div class="callout">验证：总收入 = 首次 + 2024 cohort + 差额（三者互斥，无重叠）</div>
+
+        <h2 id="section5">五、Cohort 定义</h2>
+        <ul>
+            <li><strong>2024 年 cohort</strong>：2024 年所有完成订单的 user_id + team_id 集合</li>
+            <li><strong>2025 年首次 cohort</strong>：user_id 和 team_id 在 2025 年之前均无付费</li>
+            <li><strong>匹配规则</strong>：user_id 匹配一遍、team_id 匹配一遍，按 order_id 去重</li>
+            <li><strong>不依赖 order_des</strong>：纯按 user_id/team_id 的付费历史判断</li>
+        </ul>
+
+        <h2 id="section6">六、季度收入：当年首次购买用户带来的全部收入</h2>
+        <ul>
+            <li><strong>口径</strong>：user_id 和 team_id 在该年之前均无付费</li>
+            <li>按季度（Q1/Q2/Q3/Q4）汇总该 cohort 在该季度的所有订单金额</li>
+            <li>2025 年：全用老表 vip_plan_orders_history</li>
+            <li>2026 年：Q1 跨表，老表(01-01~01-22) + 新表(01-22~03-31)</li>
+        </ul>
+
+        <h2 id="section7">七、续费与过期统计（2026 Q1 示例）</h2>
+        <h3>续费成功</h3>
+        <ul>
+            <li><strong>老表</strong>：order_des IN ('personal_renew','team_renew')，按 members 汇总账号数、price 汇总金额</li>
+            <li><strong>新表</strong>：order_action IN ('renew','repurchase')，按 purchased_license 汇总账号数、settle_price 汇总金额</li>
+        </ul>
+        <h3>过期未续费</h3>
+        <ul>
+            <li><strong>2026-01-22 及之前</strong>：团队用 team_expired_records.vip_numbers，个人用 sys_users.available_to_date</li>
+            <li><strong>2026-01-22 之后</strong>：团队用 team_assets.purchased_license</li>
+            <li><strong>条件</strong>：expired_at 在 2026 年，且过期后无成功订单</li>
+        </ul>
+
+        <h2 id="section8">八、季度收入（order_des 口径，Newpurchase_increase）</h2>
+        <ul>
+            <li><strong>首次购买收入</strong>：全量，不按 cohort 筛选</li>
+            <li><strong>增购收入</strong>：仅统计「指定年份新购」用户/团队产生的增购</li>
+            <li><strong>续费收入</strong>：仅统计「指定年份新购」用户/团队产生的续费</li>
+            <li><strong>当年新购用户全部收入</strong> = 首次(cohort) + 增购 + 续费</li>
+        </ul>
+        <div class="callout">注意：与 verify/cohort 口径不同，依赖 order_des 区分订单类型</div>
+
+        <h2 id="section9">九、跨年留存比例</h2>
+        <ul>
+            <li>2023 年 cohort 在 2024 年收入 / 2023 年总收入</li>
+            <li>2024 年 cohort 在 2025 年收入 / 2024 年总收入</li>
+            <li><strong>口径</strong>：cohort = 该年所有订单的 user_id + team_id；次年匹配用 user_id 或 team_id，按 order_id 去重</li>
+        </ul>
+
+        <h2 id="section10">十、计算流程概览</h2>
+        <div class="mermaid-wrap">
+            <div class="mermaid">flowchart TB
+    A[订单数据] --> B{created_at 分表}
+    B -->|&lt;= 2026-01-22| C[vip_plan_orders_history]
+    B -->|&gt; 2026-01-22| D[vip_plan_orders]
+    C --> E[status=Done, price]
+    D --> F[status=completed, settle_price]
+    E --> G[年度总收入]
+    F --> G
+    G --> H[2025年首次收入]
+    G --> I[2024 cohort 在2025收入]
+    G --> J[差额 cohort]
+    H --> K[三者互斥]
+    I --> K
+    J --> K</div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+        <script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+
+        <hr>
+
+        <h2 id="section11">十一、总结</h2>
+        <ul>
+            <li><strong>两套口径</strong>：不依赖 order_des（cohort/verify）vs 依赖 order_des（Newpurchase）</li>
+            <li><strong>分表时间点</strong> 2026-01-22，跨表查询需分别汇总后相加</li>
+            <li><strong>个人/团队</strong>：user_id 与 team_id 独立判断，按 order_id 去重避免重复</li>
+            <li><strong>差额 cohort</strong>：2023 及更早首次、2024 无购买、2025 有购买，用于验证分解完整性</li>
+        </ul>
+    </div>
+</body>
+</html>
